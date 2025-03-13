@@ -32,4 +32,15 @@ router.post("/login",
     req.flash("success","Welcome to Wanderlust! You are logged in!")
     res.redirect("/listings");
 });
+
+router.get("/logout",(req,res,next)=>{
+  req.logOut((err)=>{
+    if(err){
+      return next(err);
+    }
+    req.flash("success","Successfully logout");
+    res.redirect("/listings");
+  })
+})
+
 module.exports=router;
