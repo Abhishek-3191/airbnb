@@ -1,11 +1,12 @@
 if(process.env.NODE_ENV!="production"){
 require("dotenv").config();
 }
-// lect-9 1:55
+
 const express=require("express");
 const app=express();
 const mongoose=require("mongoose");
-const MONGO_URL="mongodb://127.0.0.1:27017/wanderlust"
+// const MONGO_URL="mongodb://127.0.0.1:27017/wanderlust"
+
 const path=require("path");
 const methodOverride=require("method-override");
 const ejsMate = require("ejs-mate");
@@ -14,24 +15,38 @@ const listingRouter=require("./routes/listing.js");
 const reviewRouter=require("./routes/review.js");
 const userRouter=require("./routes/user.js");
 
-const session=require("express-session")
+const session=require("express-session");
+const MongoStore=require("connect-mongo");
 const flash=require("connect-flash");
 const passport=require("passport");
 const LocalStrategy=require("passport-local");
-const User=require("./models/user.js");
+const User=require("./models/user");
 
+const dburl=process.env.ATLAS_MONGODB;
+console.log("Database URL:", process.env.ATLAS_MONGODB);
 
+// async function main() {
+// await mongoose.connect(dburl+'/test');
+// }
+
+// main().then(()=>{
+//     console.log("connected to database");
+// })
+// .catch((err)=>{
+//     console.log(err);
+// })
+// const dburl = process.env.ATLAS_MONGODB;
 
 async function main() {
-await mongoose.connect(MONGO_URL);
+    try {
+        await mongoose.connect(dburl);  // No extra options needed for MongoDB 4.0+
+        console.log("✅ Database connected successfully");
+    } catch (err) {
+        console.error("❌ Database connection error:", err.message);
+    }
 }
 
-main().then(()=>{
-    console.log("connected to database");
-})
-.catch((err)=>{
-    console.log(err);
-})
+main();
 //basics
 app.set('view engine', 'ejs');
 app.use(methodOverride("_method"));
@@ -45,8 +60,19 @@ app.use(express.urlencoded({extended:true}));
 //new added
 // app.use(express.json());
 
+const store=MongoStore.create({
+    mongoUrl:dburl,
+    crypto:{
+        secret:process.env.SECRET,
+    },
+    touchAfter:24*3600
+});
+store.on("error",()=>{
+    console.log("ERROR IN MONGO SESSION STORE",err)
+});
 const sessionOptions={
-    secret:"mysupersecretcode",
+    store,
+    secret:process.env.SECRET,
     resave:false,
     saveUninitialized:true,
     cookie:{
@@ -58,6 +84,8 @@ const sessionOptions={
 // app.get("/",(req,res)=>{
 //  res.send("Hi..how are you?")
 // });
+
+
 app.use(session(sessionOptions));
 
 app.use(flash());
@@ -80,14 +108,14 @@ app.use((req,res,next)=>{
 })
 
 
-app.get("/demouser",async(req,res)=>{
-    let fakeUser=new User({
-        email:"student@gmail.com",
-        username:"delta-student"
-    });
-  let registeredUser= await User.register(fakeUser,"helloWorld");
-  res.send(registeredUser);
-});
+// app.get("/demouser",async(req,res)=>{
+//     let fakeUser=new User({
+//         email:"student@gmail.com",
+//         username:"delta-student"
+//     });
+//   let registeredUser= await User.register(fakeUser,"helloWorld");
+//   res.send(registeredUser);
+// });
 
 
 
